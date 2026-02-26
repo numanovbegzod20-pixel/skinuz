@@ -618,14 +618,28 @@ function openCase(cid){
   document.getElementById("winActions").style.display = "none";
   var items = c.items||[];
   var ihtml = "";
+  // Narxga qarab chance hisoblash (ko'rsatish uchun)
+  var prices2 = items.map(function(it){return parseFloat(it.price)||1;});
+  var minP2 = Math.min.apply(null, prices2);
+  var maxP2 = Math.max.apply(null, prices2);
+  var range2 = maxP2 - minP2 || 1;
+  var totalW2 = 0;
+  for(var i=0; i<items.length; i++){
+    var pw = 9600 - Math.round(9599*(( parseFloat(items[i].price)||1 ) - minP2)/range2);
+    totalW2 += Math.max(1, pw);
+  }
   for(var i=0; i<items.length; i++){
     var it = items[i];
+    var pw2 = 9600 - Math.round(9599*((parseFloat(it.price)||1) - minP2)/range2);
+    pw2 = Math.max(1, pw2);
+    var pct = (pw2/totalW2*100).toFixed(1);
     ihtml += "<div class='mi' style='border-color:"+RK(it.rarity)+"40'>"
       + "<div style='width:56px;height:56px;display:flex;align-items:center;justify-content:center;margin:0 auto'>"
       + (it.image&&it.image.length>10 ? "<img src='"+esc(it.image)+"' style='width:52px;height:52px;object-fit:contain'>" : "<span style='font-size:30px'>&#128299;</span>")
       + "</div>"
       + "<div style='font-size:7px;color:"+RK(it.rarity)+";margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+esc(it.name)+"</div>"
       + "<div style='font-size:8px;color:var(--g);font-family:Rajdhani,sans-serif'>$"+it.price+"</div>"
+      + "<div style='font-size:7px;color:var(--mt);font-family:Rajdhani,sans-serif'>"+pct+"%</div>"
       + "</div>";
   }
   document.getElementById("mcitems").innerHTML = ihtml;
@@ -667,13 +681,23 @@ function doSpin(){
   document.getElementById("winActions").style.display = "none";
 
   var items = c.items||[];
-  // Rarity foizi: common=95%, uncommon=4%, rare/epic/legendary/ancient=1%
-  var RARITY_W = {common:9500, uncommon:400, rare:67, epic:17, legendary:10, ancient:6};
-  function getRW(r){return RARITY_W[r]||RARITY_W.common;}
+  // Narxga qarab chance: eng arzoni 96%, o'rtachasi 4%, eng qimmati ~0%
+  // Narx qanchalik past bo'lsa, ehtimol shuncha yuqori
+  var prices = items.map(function(it){return parseFloat(it.price)||1;});
+  var minP = Math.min.apply(null, prices);
+  var maxP = Math.max.apply(null, prices);
+  var range = maxP - minP || 1;
+  // Weight: eng arzon -> 9600, eng qimmat -> 1 (deyarli 0%)
+  // Formula: w = 9600 - 9599 * (price - minP) / range
+  function getPriceW(price){
+    var p = parseFloat(price)||1;
+    var w = 9600 - Math.round(9599 * (p - minP) / range);
+    return Math.max(1, w);
+  }
   var total = 0;
-  for(var i=0; i<items.length; i++) total += getRW(items[i].rarity);
+  for(var i=0; i<items.length; i++) total += getPriceW(items[i].price);
   var r = Math.random()*total, won = items[0];
-  for(var i=0; i<items.length; i++){r -= getRW(items[i].rarity); if(r<=0){won=items[i]; break;}}
+  for(var i=0; i<items.length; i++){r -= getPriceW(items[i].price); if(r<=0){won=items[i]; break;}}
 
   var pool = buildRoulette(items, won);
   var track = document.getElementById("rltrack");
