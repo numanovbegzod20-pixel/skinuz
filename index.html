@@ -26,6 +26,7 @@ body{background:var(--dk);color:var(--tx);font-family:'Barlow',sans-serif;min-he
 .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .ccard{background:var(--cd);border:1px solid var(--br);border-radius:16px;overflow:hidden;cursor:pointer;transition:transform .15s,border-color .2s}
 .ccard:active{transform:scale(.96)}.ccard:hover{border-color:rgba(200,168,75,.4)}
+.cimg{width:100%;aspect-ratio:1;background:#0f0f18;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .cimg img{width:85%;height:85%;object-fit:contain}.cph{font-size:60px;filter:drop-shadow(0 0 16px rgba(200,168,75,.5))}
 .cinf{padding:10px}.cnm{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rl-wrap{position:relative;overflow:hidden;border-radius:12px;border:1px solid var(--br);background:#0A0A0F;margin:16px 0;height:108px}
@@ -355,10 +356,10 @@ var CHANNEL  = "@skinuz_kanal";
 var BOT_UN   = "SkinUzBot";
 
 var DP = [
-  {id:"p1",crystals:500,stars:1,label:"STARTER"},
-  {id:"p2",crystals:1200,stars:2,label:"POPULAR"},
-  {id:"p3",crystals:3000,stars:5,label:"PRO"},
-  {id:"p4",crystals:7000,stars:10,label:"VIP"}
+  {id:"p1",crystals:10000,stars:100,label:"STARTER"},
+  {id:"p2",crystals:20000,stars:200,label:"POPULAR"},
+  {id:"p3",crystals:50000,stars:500,label:"PRO"},
+  {id:"p4",crystals:100000,stars:1000,label:"VIP"}
 ];
 
 var S = {
@@ -518,25 +519,32 @@ async function saveUser(){
   await fbPatch("users/"+u.id, {balance:S.bal, inventory:S.inv, opens:S.opens});
 }
 
-// Cloud - FAQAT Firebase, localStorage ishlatmaymiz keyslar uchun
 async function loadCloud(){
   var d = await fbGet("config");
-  // Eski default keyslarni localStorage dan tozala
-  var lsCases = lg("uzcases", []);
-  if(lsCases && lsCases.length && (lsCases[0].id==="dc1"||lsCases[0].id==="dc2")){
-    ls("uzcases", []);
-    lsCases = [];
+
+  if(d && d.cases){
+    S.cases = d.cases;
+    try{localStorage.setItem("sk_cases", JSON.stringify(d.cases));}catch(e){}
+  } else {
+    S.cases = [];
+    try{localStorage.removeItem("sk_cases");}catch(e){}
   }
-  // Faqat Firebase dan ol, localStorage fallback ishlatmaymiz
-  S.cases = (d && d.cases) ? d.cases : [];
-  S.pkgs = (d && d.pkgs) || DP;
+
+  // 🔒 Force fixed crystal prices (cannot be overridden)
+  S.pkgs = DP;
+
   S.vouchers = (d && d.vouchers) || {};
   S.cfg = (d && d.cfg) || {channel: CHANNEL, botUN: BOT_UN};
 }
 
 async function saveCloud(){
+  // Har doim local ga saqla
+  try{localStorage.setItem("sk_cases", JSON.stringify(S.cases));}catch(e){}
+  // Firebase ga ham yozishga urini
   var ok = await fbSet("config", {cases:S.cases, pkgs:S.pkgs, vouchers:S.vouchers, cfg:S.cfg});
-  if(!ok) toast("Internet aloqasi yoq!", "var(--rd)");
+  if(!ok){
+    toast("Mahalliy saqlandi (internet yoq)", "var(--g)");
+  }
   return ok;
 }
 
@@ -548,7 +556,10 @@ setInterval(async function(){
   var h = JSON.stringify(d);
   if(h === _sh) return;
   _sh = h;
-  S.cases = d.cases||[];
+  if(d.cases && d.cases.length){
+    S.cases = d.cases;
+    try{localStorage.setItem("sk_cases", JSON.stringify(d.cases));}catch(e){}
+  }
   S.pkgs = d.pkgs||DP;
   S.vouchers = d.vouchers||{};
   S.cfg = d.cfg||{};
@@ -656,10 +667,13 @@ function doSpin(){
   document.getElementById("winActions").style.display = "none";
 
   var items = c.items||[];
+  // Rarity foizi: common=95%, uncommon=4%, rare/epic/legendary/ancient=1%
+  var RARITY_W = {common:9500, uncommon:400, rare:67, epic:17, legendary:10, ancient:6};
+  function getRW(r){return RARITY_W[r]||RARITY_W.common;}
   var total = 0;
-  for(var i=0; i<items.length; i++) total += (items[i].chance||10);
+  for(var i=0; i<items.length; i++) total += getRW(items[i].rarity);
   var r = Math.random()*total, won = items[0];
-  for(var i=0; i<items.length; i++){r -= (items[i].chance||10); if(r<=0){won=items[i]; break;}}
+  for(var i=0; i<items.length; i++){r -= getRW(items[i].rarity); if(r<=0){won=items[i]; break;}}
 
   var pool = buildRoulette(items, won);
   var track = document.getElementById("rltrack");
