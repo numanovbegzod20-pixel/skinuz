@@ -412,24 +412,7 @@ async function fbSet(p,d){try{var r=await fetch(FB+"/"+p+".json",{method:"PUT",h
 async function fbPatch(p,d){try{var r=await fetch(FB+"/"+p+".json",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)});return r.ok;}catch(e){return false;}}
 
 // ═══════ DEFAULTS ═══════
-var DC=[
-  {id:"dc1",name:"STARTER CASE",price:100,image:"",items:[
-    {name:"AK-47 Redline",rarity:"rare",price:150,chance:25,image:""},
-    {name:"AWP Asiimov",rarity:"legendary",price:800,chance:5,image:""},
-    {name:"Glock Dragon",rarity:"uncommon",price:80,chance:35,image:""},
-    {name:"P250 Sand Dune",rarity:"common",price:20,chance:50,image:""},
-    {name:"USP-S Orion",rarity:"epic",price:300,chance:10,image:""},
-    {name:"Desert Eagle",rarity:"rare",price:120,chance:20,image:""}
-  ]},
-  {id:"dc2",name:"PREMIUM CASE",price:250,image:"",items:[
-    {name:"AWP Dragon Lore",rarity:"ancient",price:5000,chance:1,image:""},
-    {name:"Karambit Fade",rarity:"ancient",price:3000,chance:1,image:""},
-    {name:"M4A1-S Hyper Beast",rarity:"legendary",price:600,chance:7,image:""},
-    {name:"AK-47 Fire Serpent",rarity:"legendary",price:900,chance:5,image:""},
-    {name:"Butterfly Knife",rarity:"epic",price:400,chance:12,image:""},
-    {name:"M9 Bayonet",rarity:"rare",price:200,chance:20,image:""}
-  ]}
-];
+var DC=[];
 var DP=[
   {id:"p1",crystals:500,stars:1,label:"STARTER"},
   {id:"p2",crystals:1200,stars:2,label:"POPULAR"},
@@ -565,8 +548,10 @@ async function saveUser(){
 
 // ═══════ CLOUD ═══════
 async function loadCloud(){
+  var cached=lg("uzcases",[]);
+  if(cached&&cached.length&&(cached[0].id==="dc1"||cached[0].id==="dc2")){ls("uzcases",[]);}
   var d=await fbGet("config");
-  S.cases=(d&&d.cases)||lg("uzcases",DC);
+  S.cases=(d&&d.cases)||[];
   S.pkgs=(d&&d.pkgs)||lg("uzpkgs",DP);
   S.vouchers=(d&&d.vouchers)||lg("uzvouchers",{});
   S.settings=(d&&d.settings)||{channel:CHANNEL,botUN:BOT_UN};
