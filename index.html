@@ -639,7 +639,7 @@ function openCase(cid){
       + "</div>"
       + "<div style='font-size:7px;color:"+RK(it.rarity)+";margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+esc(it.name)+"</div>"
       + "<div style='font-size:8px;color:var(--g);font-family:Rajdhani,sans-serif'>$"+it.price+"</div>"
-      + "<div style='font-size:7px;color:var(--mt);font-family:Rajdhani,sans-serif'>"+pct+"%</div>"
+
       + "</div>";
   }
   document.getElementById("mcitems").innerHTML = ihtml;
@@ -737,8 +737,9 @@ function doSpin(){
 
         // Show win action buttons
         document.getElementById("winActions").style.display = "block";
-        var sp = Math.floor(won.price * 0.5);
-        document.getElementById("sellBtn").textContent = "SOTISH (+" + sp + " kristal)";
+        var rate = (S.cfg && S.cfg.rate) ? parseFloat(S.cfg.rate) : 500;
+        var sp = Math.round(won.price * rate);
+        document.getElementById("sellBtn").textContent = "SOTISH (+" + sp + " 💎)";
 
         btn.textContent = "YANA OCHISH ("+c.price+")"; btn.disabled = false; S.spinning = false;
         toast(won.name+"!", RK(won.rarity));
@@ -760,11 +761,12 @@ function keepItem(){
 function sellItem(){
   if(!S.wonItem || S.wonAdded) return;
   S.wonAdded = true;
-  var sp = Math.floor(S.wonItem.price * 0.5);
+  var rate = (S.cfg && S.cfg.rate) ? parseFloat(S.cfg.rate) : 500;
+  var sp = Math.round(S.wonItem.price * rate);
   S.bal += sp;
   saveUser(); renderHeader();
   document.getElementById("winActions").style.display = "none";
-  toast("Sotildi! +" + sp + " kristal", "var(--g)");
+  toast("Sotildi! +" + sp + " 💎", "var(--g)");
   notify("Skin sotildi!\n"+(S.user.name||"")+" (@"+(S.user.username||"")+")\n"+S.wonItem.name+"\n+"+sp+" kristal");
 }
 
@@ -1045,6 +1047,9 @@ async function renderAdm(){
       + "<input id='cfg-channel' class='inp' value='"+esc(cfg.channel||CHANNEL)+"' placeholder='@kanal'/>"
       + "<span class='lbl'>BOT USERNAME</span>"
       + "<input id='cfg-botun' class='inp' value='"+esc(cfg.botUN||BOT_UN)+"' placeholder='MyBot'/>"
+      + "<span class='lbl'>💎 1 KRISTAL = NECHA SO'M (kurs)</span>"
+      + "<input id='cfg-rate' class='inp' type='number' value='"+(cfg.rate||500)+"' placeholder='100'/>"
+      + "<div style='font-size:11px;color:var(--mt);margin-bottom:12px'>Misol: 100 so'm. Skin $10 bo\'lsa → 10 × kurs = kristal sifatida qaytariladi</div>"
       + "<button class='btn bg' onclick='saveSettings()'>SAQLASH</button>"
       + "</div>"
       + "<div class='asec' style='border-color:rgba(229,57,53,.3)'>"
@@ -1196,6 +1201,7 @@ async function banUser(uid){
 async function saveSettings(){
   S.cfg.channel = (document.getElementById("cfg-channel").value||"").trim();
   S.cfg.botUN = (document.getElementById("cfg-botun").value||"").trim().replace("@","");
+  S.cfg.rate = parseInt(document.getElementById("cfg-rate").value)||100;
   var ok = await saveCloud();
   if(ok) toast("Sozlamalar saqlandi", "var(--gn)");
 }
