@@ -113,6 +113,47 @@ select.inp{appearance:none;cursor:pointer}
   </div>
 </div>
 
+<!-- WELCOME / START SCREEN -->
+<div id="welcome" style="position:fixed;inset:0;background:var(--dk);z-index:150;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;">
+  <div style="text-align:center;margin-bottom:32px">
+    <div style="font-size:56px;margin-bottom:10px">&#128075;</div>
+    <div class="logo" style="font-size:38px;letter-spacing:6px">SKINUZ</div>
+    <div class="sub" style="margin-top:6px">CS2 SKIN PLATFORMASI</div>
+  </div>
+  <div style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px">
+    <button onclick="welcomeGo('cases')" style="background:linear-gradient(135deg,var(--g),var(--g2));color:var(--dk);border:none;border-radius:14px;padding:16px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 20px rgba(200,168,75,.35)">
+      <span style="font-size:22px">&#128142;</span> RFL CRYSTALS O'YNASH
+    </button>
+    <button onclick="welcomeGo('prof')" style="background:var(--cd);color:var(--tx);border:1px solid var(--br);border-radius:14px;padding:16px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
+      <span style="font-size:22px">&#128188;</span> MENING BALANSIM
+    </button>
+    <button onclick="welcomeGo('bonus')" style="background:var(--cd);color:var(--tx);border:1px solid var(--br);border-radius:14px;padding:16px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
+      <span style="font-size:22px">&#128101;</span> DO'STLARNI TAKLIF QILISH
+    </button>
+    <button onclick="openMo('mo-help')" style="background:var(--cd);color:var(--tx);border:1px solid var(--br);border-radius:14px;padding:16px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
+      <span style="font-size:22px">&#8505;&#65039;</span> YORDAM
+    </button>
+  </div>
+</div>
+
+<!-- HELP MODAL -->
+<div class="mo" id="mo-help">
+  <div class="mb">
+    <div class="mtit">&#8505;&#65039; YORDAM</div>
+    <div style="font-size:13px;color:var(--mt);line-height:1.7;margin-bottom:16px">
+      <p style="margin-bottom:10px">&#128142; <b style="color:var(--g)">RFL Crystals</b> — Counter Strike 2 uchun skin va keyslarga ega bo'ling!</p>
+      <div style="background:#0A0A0F;border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="color:var(--tx);font-family:'Rajdhani',sans-serif;font-weight:700;margin-bottom:8px">&#127918; Qanday ishlaydi:</div>
+        <div>&#8226; Kristallar to'plang</div>
+        <div>&#8226; Keyslarni oching</div>
+        <div>&#8226; Skinlarni oling yoki soting</div>
+        <div>&#8226; Do'stlarni taklif qilib, bonus kristallar oling</div>
+      </div>
+    </div>
+    <button class="btn bg" onclick="closeMo('mo-help')">TUSHUNARLI!</button>
+  </div>
+</div>
+
 <div id="app">
   <!-- KEYSLAR -->
   <div id="pg-cases" class="pg on">
@@ -204,6 +245,7 @@ select.inp{appearance:none;cursor:pointer}
       <button class="tab on" id="tab-users" onclick="admTab('users')">&#128101; Userlar</button>
       <button class="tab" id="tab-cases" onclick="admTab('cases')">&#127873; Keyslar</button>
       <button class="tab" id="tab-vouchers" onclick="admTab('vouchers')">&#127903; Voucher</button>
+      <button class="tab" id="tab-pkgs" onclick="admTab('pkgs')">&#128142; Paketlar</button>
       <button class="tab" id="tab-settings" onclick="admTab('settings')">&#9881; Sozlama</button>
     </div>
     <div id="admcont"></div>
@@ -352,6 +394,7 @@ select.inp{appearance:none;cursor:pointer}
 var FB       = "https://skinuz-6cdd3-default-rtdb.firebaseio.com";
 var BOT      = "8739618187:AAH8430N0GX5xBjHedgxNsDfbeZzM-lHglc";
 var ADMIN_UN = "skinuz_admin";
+var ADMIN_ID = ""; // Admin Telegram ID raqami (shaxsiy xabar uchun)
 var CHANNEL  = "@skinuz_kanal";
 var BOT_UN   = "SkinUzBot";
 
@@ -508,6 +551,7 @@ async function loadUser(uid){
   }
   renderAll();
   document.getElementById("app").style.display = "block";
+  showWelcome();
 }
 
 // Save User
@@ -563,6 +607,7 @@ setInterval(async function(){
   S.pkgs = d.pkgs||DP;
   S.vouchers = d.vouchers||{};
   S.cfg = d.cfg||{};
+  if(S.cfg.adminId) ADMIN_ID = S.cfg.adminId;
   renderCases(); renderPkgs();
 }, 8000);
 
@@ -732,14 +777,15 @@ function doSpin(){
 
         S.wonItem = Object.assign({}, won, {uid:Date.now(), caseId:c.id, caseName:c.name, isNew:true, status:"active"});
         S.wonAdded = false;
+        // Skin darhol inventarga saqlanadi - yo'qolmasin
+        S.inv.unshift(S.wonItem);
         S.opens++;
         saveUser();
 
         // Show win action buttons
         document.getElementById("winActions").style.display = "block";
-        var rate = (S.cfg && S.cfg.rate) ? parseFloat(S.cfg.rate) : 500;
-        var sp = Math.round(won.price * rate);
-        document.getElementById("sellBtn").textContent = "SOTISH (+" + sp + " 💎)";
+        var sp = Math.floor(won.price * (S.cfg&&S.cfg.rate ? parseFloat(S.cfg.rate) : 300)/100);
+        document.getElementById("sellBtn").textContent = "SOTISH (+" + sp + " almaz)";
 
         btn.textContent = "YANA OCHISH ("+c.price+")"; btn.disabled = false; S.spinning = false;
         toast(won.name+"!", RK(won.rarity));
@@ -750,25 +796,25 @@ function doSpin(){
 }
 
 function keepItem(){
-  if(!S.wonItem || S.wonAdded) return;
+  if(!S.wonItem) return;
   S.wonAdded = true;
-  S.inv.unshift(S.wonItem);
-  saveUser(); renderInv();
   document.getElementById("winActions").style.display = "none";
   toast("Inventarga qoshildi!", "var(--gn)");
 }
 
 function sellItem(){
-  if(!S.wonItem || S.wonAdded) return;
+  if(!S.wonItem) return;
   S.wonAdded = true;
-  var rate = (S.cfg && S.cfg.rate) ? parseFloat(S.cfg.rate) : 500;
+  var rate = (S.cfg && S.cfg.rate) ? parseFloat(S.cfg.rate) : 300;
   var sp = Math.round(S.wonItem.price * rate);
   S.bal += sp;
-  saveUser(); renderHeader();
+  S.inv = S.inv.filter(function(i){return i.uid !== S.wonItem.uid;});
+  saveUser(); renderHeader(); renderInv();
   document.getElementById("winActions").style.display = "none";
-  toast("Sotildi! +" + sp + " 💎", "var(--g)");
-  notify("Skin sotildi!\n"+(S.user.name||"")+" (@"+(S.user.username||"")+")\n"+S.wonItem.name+"\n+"+sp+" kristal");
+  toast("Sotildi! +" + sp + " almaz", "var(--g)");
+  notify("Skin sotildi!\n"+(S.user.name||"")+" (@"+(S.user.username||"")+")\n"+(S.wonItem.name||"")+"\n+"+sp+" almaz");
 }
+
 
 // Inventory
 function renderInv(){
@@ -948,11 +994,17 @@ function openWithdraw(){
 
 function reqWithdraw(idx){
   var it = S.inv[idx]; if(!it) return;
-  if(!S.user.tradeLink){toast("Avval trade link qoshing","var(--rd)"); return;}
   it.status = "pending"; saveUser();
-  notify("CHIQARISH\n"+(S.user.name||"")+" (@"+(S.user.username||"")+")\nID: "+S.user.id+"\n"+it.name+"\n$"+it.price+"\nTrade:\n"+S.user.tradeLink+"\n"+new Date().toLocaleString());
-  closeMo("mo-wd"); toast("Sorov yuborildi!", "var(--gn)");
+  // Tayyor matn bilan admin lichkasiga o'tish
+  var text = "Men " + it.name + " skinimni chiqarmoqchiman"
+    + (S.user && S.user.tradeLink ? "\nTrade link: " + S.user.tradeLink : "");
+  var adminUN = (S.cfg && S.cfg.adminUN) ? S.cfg.adminUN : ADMIN_UN;
+  var url = "https://t.me/" + adminUN.replace("@","") + "?text=" + encodeURIComponent(text);
+  window.open(url, "_blank");
+  closeMo("mo-wd");
+  closeMo("mo-inv");
 }
+
 
 // ═══ ADMIN ═══
 function admTab(tab){
@@ -1039,6 +1091,24 @@ async function renderAdm(){
     c.innerHTML = html;
     c.querySelectorAll("[data-dvcode]").forEach(function(btn){btn.onclick=function(){deleteVoucher(this.getAttribute("data-dvcode"));};});
 
+  } else if(S.admTab === "pkgs"){
+    var pkgs = S.pkgs && S.pkgs.length ? S.pkgs : DP;
+    var html = "<div class='asec'><div style='font-family:Rajdhani,sans-serif;font-weight:700;margin-bottom:16px'>&#128142; ALMAZ PAKETLARI</div>";
+    for(var i=0;i<pkgs.length;i++){
+      var pk = pkgs[i];
+      html += "<div style='background:#0A0A0F;border-radius:10px;padding:12px;margin-bottom:10px'>"
+        + "<div style='display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center'>"
+        + "<div><span class='lbl' style='margin-bottom:3px'>NOMI</span><input class='inp' style='margin:0;font-size:12px' data-pi='"+i+"' data-field='label' value='"+pk.label+"'/></div>"
+        + "<div><span class='lbl' style='margin-bottom:3px'>ALMAZ</span><input class='inp' style='margin:0;font-size:12px' type='number' data-pi='"+i+"' data-field='crystals' value='"+pk.crystals+"'/></div>"
+        + "<div><span class='lbl' style='margin-bottom:3px'>STARS ⭐</span><input class='inp' style='margin:0;font-size:12px' type='number' data-pi='"+i+"' data-field='stars' value='"+pk.stars+"'/></div>"
+        + "<button onclick='deletePkg("+i+")' style='background:rgba(229,57,53,.2);border:1px solid rgba(229,57,53,.4);color:var(--rd);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:14px;margin-top:16px'>✕</button>"
+        + "</div></div>";
+    }
+    html += "<button class='btn bs' onclick='addPkg()' style='margin-top:8px'>+ PAKET QO\'SHISH</button>"
+      + "<button class='btn bg' onclick='savePkgs()' style='margin-top:8px'>SAQLASH</button>"
+      + "</div>";
+    c.innerHTML = html;
+
   } else if(S.admTab === "settings"){
     var cfg = S.cfg||{};
     c.innerHTML = "<div class='asec'>"
@@ -1047,9 +1117,12 @@ async function renderAdm(){
       + "<input id='cfg-channel' class='inp' value='"+esc(cfg.channel||CHANNEL)+"' placeholder='@kanal'/>"
       + "<span class='lbl'>BOT USERNAME</span>"
       + "<input id='cfg-botun' class='inp' value='"+esc(cfg.botUN||BOT_UN)+"' placeholder='MyBot'/>"
-      + "<span class='lbl'>💎 1 KRISTAL = NECHA SO'M (kurs)</span>"
-      + "<input id='cfg-rate' class='inp' type='number' value='"+(cfg.rate||500)+"' placeholder='100'/>"
-      + "<div style='font-size:11px;color:var(--mt);margin-bottom:12px'>Misol: 100 so'm. Skin $10 bo\'lsa → 10 × kurs = kristal sifatida qaytariladi</div>"
+      + "<span class='lbl'>👤 ADMIN TELEGRAM ID (shaxsiy xabar uchun)</span>"
+      + "<input id='cfg-adminid' class='inp' type='number' value='"+(cfg.adminId||ADMIN_ID)+"' placeholder='123456789'/>"
+      + "<div style='font-size:11px;color:var(--mt);margin-bottom:10px'>Botga /start bosib, @userinfobot dan ID oling</div>"
+      + "<span class='lbl'>💎 1 DOLLAR = NECHA ALMAZ (kurs)</span>"
+      + "<input id='cfg-rate' class='inp' type='number' value='"+(cfg.rate||300)+"' placeholder='300'/>"
+      + "<div style='font-size:11px;color:var(--mt);margin-bottom:12px'>Misol: 300. Skin $1 = 300 almaz, $0.1 = 30 almaz</div>"
       + "<button class='btn bg' onclick='saveSettings()'>SAQLASH</button>"
       + "</div>"
       + "<div class='asec' style='border-color:rgba(229,57,53,.3)'>"
@@ -1198,10 +1271,40 @@ async function banUser(uid){
   toast("Foydalanuvchi ochirildi","var(--rd)");
 }
 
+function addPkg(){
+  if(!S.pkgs || !S.pkgs.length) S.pkgs = JSON.parse(JSON.stringify(DP));
+  S.pkgs.push({id:"p"+Date.now(), crystals:1000, stars:100, label:"YANGI"});
+  admTab("pkgs");
+}
+
+function deletePkg(i){
+  if(!confirm("Paketni o'chirishni tasdiqlaysizmi?")) return;
+  if(!S.pkgs || !S.pkgs.length) S.pkgs = JSON.parse(JSON.stringify(DP));
+  S.pkgs.splice(i,1);
+  admTab("pkgs");
+}
+
+async function savePkgs(){
+  if(!S.pkgs || !S.pkgs.length) S.pkgs = JSON.parse(JSON.stringify(DP));
+  var inputs = document.querySelectorAll("[data-pi]");
+  inputs.forEach(function(inp){
+    var i = parseInt(inp.getAttribute("data-pi"));
+    var field = inp.getAttribute("data-field");
+    var val = inp.value;
+    if(field === "crystals" || field === "stars") val = parseInt(val)||0;
+    S.pkgs[i][field] = val;
+  });
+  var ok = await saveCloud();
+  if(ok){ toast("Paketlar saqlandi!", "var(--gn)"); admTab("pkgs"); }
+  else toast("Xato! Qayta urining","var(--rd)");
+}
+
 async function saveSettings(){
   S.cfg.channel = (document.getElementById("cfg-channel").value||"").trim();
   S.cfg.botUN = (document.getElementById("cfg-botun").value||"").trim().replace("@","");
-  S.cfg.rate = parseInt(document.getElementById("cfg-rate").value)||100;
+  S.cfg.adminId = (document.getElementById("cfg-adminid").value||"").trim();
+  if(S.cfg.adminId) ADMIN_ID = S.cfg.adminId;
+  S.cfg.rate = parseFloat(document.getElementById("cfg-rate").value)||300;
   var ok = await saveCloud();
   if(ok) toast("Sozlamalar saqlandi", "var(--gn)");
 }
@@ -1400,10 +1503,21 @@ document.addEventListener("click", function(e){if(e.target.classList.contains("m
 // Notify
 function notify(text){
   if(!BOT) return;
+  // ADMIN_ID - shaxsiy chat (raqam), ADMIN_UN - kanal/group (@username)
+  var chatId = ADMIN_ID ? ADMIN_ID : "@"+ADMIN_UN;
   fetch("https://api.telegram.org/bot"+BOT+"/sendMessage",{
     method:"POST", headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({chat_id:"@"+ADMIN_UN, text:text})
+    body:JSON.stringify({chat_id:chatId, text:text, parse_mode:"HTML"})
   }).catch(function(){});
+}
+
+// Welcome
+function showWelcome(){
+  document.getElementById("welcome").style.display = "flex";
+}
+function welcomeGo(page){
+  document.getElementById("welcome").style.display = "none";
+  goPage(page);
 }
 
 // Init
